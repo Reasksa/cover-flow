@@ -59,9 +59,44 @@ async function login(platform) {
 }
 
 /**
+ * Helpers
+ */
+async function tryUploadFile(driver, selectors, filePath) {
+  for (const sel of selectors) {
+    const elems = await driver.findElements(By.css(sel));
+    if (elems.length) {
+      const el = elems[0];
+      try {
+        await driver.executeScript('arguments[0].style.display="block"; arguments[0].removeAttribute("hidden");', el);
+      } catch {}
+      try {
+        await el.sendKeys(filePath);
+        return true;
+      } catch {}
+    }
+  }
+  return false;
+}
+
+async function trySetText(driver, selectors, text) {
+  for (const sel of selectors) {
+    const elems = await driver.findElements(By.css(sel));
+    if (elems.length) {
+      const el = elems[0];
+      try {
+        await driver.wait(until.elementIsVisible(el), 10000).catch(() => {});
+        await el.click();
+        await el.sendKeys(text);
+        return true;
+      } catch {}
+    }
+  }
+  return false;
+}
+
+/**
  * Posts content based on job description.
- * For MVP we open the platform creator/uploader page and leave the user to finalize and submit.
- * Later this can be expanded to fully automated DOM interactions per platform.
+ * Tries per-platform best-effort automations, otherwise opens posting page and lets user finish.
  */
 async function post(job) {
   const driver = await createDriver();
@@ -97,35 +132,45 @@ async function post(job) {
 
     await driver.get(targetUrl);
 
-    // Best-effort automated upload for YouTube if a file is provided
+    // YouTube upload
     if (platform === 'youtube' && files && files.length) {
       try {
-        // YouTube Studio upload may expose a hidden file input inside web components.
-        // Try common selectors and trigger with sendKeys on input[type=file]
-        await driver.wait(until.elementLocated(By.css('input[type="file"]')), 15000);
-        const fileInput = await driver.findElement(By.css('input[type="file"]'));
-        await driver.executeScript('arguments[0].style.display="block"; arguments[0].removeAttribute("hidden");', fileInput);
-        await fileInput.sendKeys(files[0]);
-
-        // Try to set title/description fields
-        const titleSelectors = ['#textbox', 'textarea', 'input[aria-label="Title"]'];
-        for (const sel of titleSelectors) {
-          const els = await driver.findElements(By.css(sel));
-          if (els.length) {
-            try {
-              await els[0].click();
-              await els[0].clear().catch(() => {});
-              await els[0].sendKeys(text);
-              break;
-            } catch {}
-          }
-        }
-      } catch {
-        // If upload automation fails, continue with manual guidance
-      }
+        await driver.wait(until.elementLocated(By.css('input[type="file"]')), 20000);
+        await tryUploadFile(driver, ['input[type="file"]'], files[0]);
+        await trySetText(driver, ['#textbox', 'textarea', 'input[aria-label="Title"]'], text);
+      } catch {}
     }
 
-    // Simple guidance overlay via console logs in DevTools
+    // TikTok upload
+    if (platform === 'tiktok' && files && files.length) {
+      try {
+        // Wait for upload area
+        await driver.wait(until.elementLocated(By.css('input[type="file"]')), 20000);
+        await tryUploadFile(driver, ['input[type="file"]', 'input[accept*="video"]'], files[0]);
+        await trySetText(driver, ['div[role="textbox"]', 'textarea'], text);
+      } catch {}
+    }
+
+    // Facebook composer (home feed)
+    if (platform === 'facebook') {
+      try {
+        // Attempt to open composer and attach file
+        // Navigate ensures we're at home feed
+        await driver.get('https://www.facebook.com/');
+        // Try to click "Create post" area by common selectors
+        const composerSelectors = [
+          'div[aria-label="Create a post"]',
+          'div[aria-label="What\'s on your mind?"]',
+          'div[role="textbox"]'
+        ];
+        await trySetText(driver, composerSelectors, text);
+        if (files && files.length) {
+          await tryUploadFile(driver, ['input[type="file"]', 'input[accept*="image"], input[accept*="video"]'], files[0]);
+        }
+      } catch {}
+    }
+
+    // Generic guidance
     try {
       await driver.executeScript(`
         console.log('Reaksaio: If you are not logged in, please log in first.');
@@ -134,27 +179,10 @@ async function post(job) {
       `);
     } catch {}
 
-    // Try to find a text area and paste the text (best-effort, varies per platform)
-    const possibleSelectors = [
-      'textarea',
-      'div[role="textbox"]',
-      'input[type="text"]'
-    ];
+    // Generic text injection fallback
+    await trySetText(driver, ['textarea', 'div[role="textbox"]', 'input[type="text"]'], text);
 
-    for (const sel of possibleSelectors) {
-      const elements = await driver.findElements(By.css(sel));
-      if (elements.length) {
-        const el = elements[0];
-        await driver.wait(until.elementIsVisible(el), 10000).catch(() => {});
-        try {
-          await el.click();
-          await el.sendKeys(text);
-          break;
-        } catch {}
-      }
-    }
-
-    return { success: true, message: `Opened ${platform} posting page. ${files.length ? `Prepared ${files.length} file(s)` : 'No files selected'}.`, details: { files, text } };
+    return { success: true, message: `Opened ${platform} posting page. ${files && files.length ? `Prepared ${files.length} file(s)` : 'No files selected'}.`, details: { files, text } };
   } catch (err) {
     return { success: false, error: String(err) };
   }

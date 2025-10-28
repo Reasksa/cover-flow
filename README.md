@@ -46,7 +46,11 @@ Windows desktop application for multi-platform social posting, scheduling, and a
 
 Notes:
 - If ChromeDriver version mismatch occurs, update Chrome or install a compatible driver. Selenium 4 usually manages Chrome for Testing automatically in many cases.
-- Login and posting flows are user-assisted. A basic YouTube upload automation is included (file input + title best-effort). Full automation per platform can be added modularly in `automation/`.
+- Login and posting flows are user-assisted. Basic upload automations are included:
+  - YouTube: file input + title best-effort
+  - TikTok: file input + caption best-effort
+  - Facebook: composer text + media best-effort
+  Full automation per platform can be added modularly in `automation/`.
 - The scheduler loop runs every 30s to open due jobs automatically.
 
 ## Security
