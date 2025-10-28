@@ -167,7 +167,18 @@ export default function LinksPage() {
     }
   };
 
-  const ids = useMemo(() => links.map((l) => l.id), [links]);
+  // Collections filter
+  const [filterCollection, setFilterCollection] = useState<string>('All');
+  const collections = useMemo(
+    () => Array.from(new Set(links.map((l) => l.collection).filter((c): c is string => !!c))),
+    [links]
+  );
+  const filteredLinks = useMemo(
+    () => (filterCollection === 'All' ? links : links.filter((l) => (l.collection || '') === filterCollection)),
+    [links, filterCollection]
+  );
+
+  const ids = useMemo(() => filteredLinks.map((l) => l.id), [filteredLinks]);
 
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -215,7 +226,37 @@ export default function LinksPage() {
 
   const uploadThumbnail = async (index: number, file: File | null) => {
     if (!file) return;
-    const sigRes = };
+    const sigRes = await fetch('/api/uploads/signature');
+    const sig = await sigRes.json();
+    if (!sig?.signature) {
+      alert('Upload signature error');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', sig.apiKey);
+    formData.append('timestamp', String(sig.timestamp));
+    formData.append('signature', sig.signature);
+    if (sig.uploadPreset) {
+      formData.append('upload_preset', sig.uploadPreset);
+    }
+
+    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const uploaded = await uploadRes.json();
+    if (uploaded?.public_id && uploaded?.format) {
+      const thumbUrl = `https://res.cloudinary.com/${sig.cloudName}/image/upload/c_fill,r_12,w_320,h_180/${uploaded.public_id}.${uploaded.format}`;
+      setLinks(prev => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], thumbnail: thumbUrl } as any;
+        return copy;
+      });
+    } else {
+      alert('Upload failed');
+    }
+  };
 
   if (status === 'loading') {
     return <main className="p-6">Loading...</main>;
@@ -275,10 +316,23 @@ export default function LinksPage() {
       </div>
 
       <div className="mt-6">
+        <div className="mb-4 flex items-center gap-2">
+          <label className="text-sm text-gray-600">Filter by collection:</label>
+          <select
+            className="rounded border p-2"
+            value={filterCollection}
+            onChange={(e) => setFilterCollection(e.target.value)}
+          >
+            <option>All</option>
+            {collections.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
         <DndContext onDragEnd={onDragEnd}>
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
             <ul className="space-y-2">
-              {links.map((item, idx) => (
+              {filteredLinks.map((item, idx) => (
                 <SortableLinkRow
                   key={item.id}
                   item={item}
@@ -289,6 +343,7 @@ export default function LinksPage() {
                   }
                   onSave={() => saveLink(item.id, item)}
                   onDelete={() => deleteLink(item.id)}
+                  onUploadThumbnail={(file) => uploadThumbnail(idx, file)}
                 />
               ))}
             </ul>
