@@ -51,6 +51,7 @@
     "@testing-library/react": "14.0.0",
     "@testing-library/jest-dom": "6.4.8",
     "playwright": "1.47.0",
-    "ts-node": "10.9.2"
+    "ts-node": "10.9.2",
+    "wait-on": "7.2.0"
   }
 }
