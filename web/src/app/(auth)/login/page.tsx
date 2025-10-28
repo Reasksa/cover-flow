@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -9,7 +10,12 @@ export default function LoginPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: integrate NextAuth signIn
+    await signIn('credentials', {
+      email,
+      password,
+      callbackUrl: '/dashboard',
+      redirect: true,
+    });
   };
 
   return (
@@ -35,6 +41,9 @@ export default function LoginPage() {
 
       <p className="mt-4 text-sm">
         No account? <Link className="underline" href="/register">Register</Link>
+      </p>
+      <p className="mt-2 text-sm">
+        <Link className="underline" href="/forgot">Forgot your password?</Link>
       </p>
     </main>
   );
