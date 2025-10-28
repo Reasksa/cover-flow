@@ -25,6 +25,8 @@ model User {
   plan                 Plan     @default(FREE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  hoverEnabled         Boolean  @default(true)
+  shadowEnabled        Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

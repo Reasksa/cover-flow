@@ -38,7 +38,9 @@ export default function SettingsPage() {
     formData.append('api_key', sig.apiKey);
     formData.append('timestamp', String(sig.timestamp));
     formData.append('signature', sig.signature);
-    formData.append('upload_preset', ''); // optional if you use presets
+    if (sig.uploadPreset) {
+      formData.append('upload_preset', sig.uploadPreset);
+    }
 
     const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
       method: 'POST',

@@ -18,6 +18,10 @@ export default function LoginPage() {
     });
   };
 
+  const loginWithProvider = async (provider: 'google' | 'github') => {
+    await signIn(provider, { callbackUrl: '/dashboard' });
+  };
+
   return (
     <main className="mx-auto max-w-md px-6 py-14">
       <h1 className="text-2xl font-bold">Login</h1>
@@ -38,6 +42,15 @@ export default function LoginPage() {
         />
         <button className="w-full rounded bg-primary p-2 text-white">Sign In</button>
       </form>
+
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <button className="rounded border px-4 py-2" onClick={() => loginWithProvider('google')}>
+          Continue with Google
+        </button>
+        <button className="rounded border px-4 py-2" onClick={() => loginWithProvider('github')}>
+          Continue with GitHub
+        </button>
+      </div>
 
       <p className="mt-4 text-sm">
         No account? <Link className="underline" href="/register">Register</Link>

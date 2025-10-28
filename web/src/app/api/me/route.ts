@@ -13,5 +13,18 @@ export async function GET() {
     include: { theme: true, links: { orderBy: { order: 'asc' } }, socials: true }
   });
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(user);
+  // Only return necessary fields
+  return NextResponse.json({
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    name: user.name,
+    bio: user.bio,
+    avatar: user.avatar,
+    hoverEnabled: user.hoverEnabled,
+    shadowEnabled: user.shadowEnabled,
+    theme: user.theme ? { primary: user.theme.primary, background: user.theme.background } : null,
+    links: user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active, order: l.order })),
+    socials: user.socials,
+  });
 }

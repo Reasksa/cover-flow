@@ -5,6 +5,7 @@ export async function GET() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || '';
 
   if (!cloudName || !apiKey || !apiSecret) {
     return NextResponse.json({ error: 'Missing Cloudinary env' }, { status: 500 });
@@ -19,5 +20,6 @@ export async function GET() {
     apiKey,
     timestamp,
     signature,
+    uploadPreset,
   });
 }

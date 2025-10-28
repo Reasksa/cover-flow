@@ -41,6 +41,8 @@ export default async function ProfilePage({ params }: { params: { username: stri
         <ProfileLinks
           links={user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active }))}
           borderColor={user.theme?.primary ?? '#6366F1'}
+          hoverEnabled={user.hoverEnabled}
+          shadowEnabled={user.shadowEnabled}
         />
 
         {user.socials?.length ? (

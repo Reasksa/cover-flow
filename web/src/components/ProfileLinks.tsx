@@ -9,7 +9,17 @@ type LinkItem = {
   active: boolean;
 };
 
-export default function ProfileLinks({ links, borderColor }: { links: LinkItem[]; borderColor: string }) {
+export default function ProfileLinks({
+  links,
+  borderColor,
+  hoverEnabled = true,
+  shadowEnabled = true,
+}: {
+  links: LinkItem[];
+  borderColor: string;
+  hoverEnabled?: boolean;
+  shadowEnabled?: boolean;
+}) {
   const trackClick = async (linkId: string) => {
     try {
       await fetch('/api/analytics/track-click', {
@@ -27,13 +37,15 @@ export default function ProfileLinks({ links, borderColor }: { links: LinkItem[]
     }
   };
 
+  const hoverClasses = `${hoverEnabled ? 'hover:scale-105' : ''} ${shadowEnabled ? 'hover:shadow-lg' : ''}`.trim();
+
   return (
     <div className="mt-6 space-y-3">
       {links.filter((l) => l.active).map((l) => (
         <Link
           key={l.id}
           href={l.url}
-          className="block rounded-lg border p-3 hover:scale-105 hover:shadow-lg transition"
+          className={`block rounded-lg border p-3 transition ${hoverClasses}`}
           style={{ borderColor }}
           onClick={() => trackClick(l.id)}
         >
