@@ -313,6 +313,21 @@
       dateEl.textContent = dayNumber;
       cell.appendChild(dateEl);
 
+      // Click-to-schedule: clicking the day will prefill scheduleAt and, if a draft exists, schedule it at 09:00
+      cell.addEventListener('click', async () => {
+        const pref = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate(), 9, 0, 0);
+        scheduleAtInput.value = new Date(pref.getTime() - pref.getTimezoneOffset() * 60000).toISOString().slice(0,16); // local datetime-local
+        if (lastQueuedDraft) {
+          await api.posting.queue({ ...lastQueuedDraft, scheduleAt: pref.getTime() });
+          log(`Scheduled draft for ${pref.toLocaleString()}`);
+          await refreshQueue();
+          await refreshOverview();
+          await renderCalendar();
+        } else {
+          log('No draft available. Prepare a post in Uploads, then click a calendar day to schedule.');
+        }
+      });
+
       const jobsForDay = queue.filter(j => {
         const jd = new Date(j.scheduleAt);
         return jd.getFullYear() === cellDate.getFullYear()

@@ -154,16 +154,48 @@ async function post(job) {
     // Facebook composer (home feed)
     if (platform === 'facebook') {
       try {
-        // Attempt to open composer and attach file
-        // Navigate ensures we're at home feed
         await driver.get('https://www.facebook.com/');
-        // Try to click "Create post" area by common selectors
         const composerSelectors = [
           'div[aria-label="Create a post"]',
           'div[aria-label="What\'s on your mind?"]',
           'div[role="textbox"]'
         ];
         await trySetText(driver, composerSelectors, text);
+        if (files && files.length) {
+          await tryUploadFile(driver, ['input[type="file"]', 'input[accept*="image"], input[accept*="video"]'], files[0]);
+        }
+      } catch {}
+    }
+
+    // Instagram (desktop web is limited; best-effort caption in profile/DM text areas)
+    if (platform === 'instagram') {
+      try {
+        await driver.get('https://www.instagram.com/');
+        await trySetText(driver, ['textarea', 'div[role="textbox"]'], text);
+        // Upload requires mobile emulation / specific flows; defer to user
+      } catch {}
+    }
+
+    // Twitter (X) compose
+    if (platform === 'twitter') {
+      try {
+        await driver.get('https://twitter.com/compose/tweet');
+        await trySetText(driver, ['div[role="textbox"]', 'textarea'], text);
+        if (files && files.length) {
+          await tryUploadFile(driver, ['input[type="file"]', 'input[accept*="image"], input[accept*="video"]'], files[0]);
+        }
+      } catch {}
+    }
+
+    // LinkedIn share
+    if (platform === 'linkedin') {
+      try {
+        await driver.get('https://www.linkedin.com/feed/');
+        const shareSelectors = [
+          'div[role="textbox"]',
+          'textarea'
+        ];
+        await trySetText(driver, shareSelectors, text);
         if (files && files.length) {
           await tryUploadFile(driver, ['input[type="file"]', 'input[accept*="image"], input[accept*="video"]'], files[0]);
         }
