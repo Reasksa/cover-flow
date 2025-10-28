@@ -42,7 +42,15 @@ export default async function ProfilePage({ params }: { params: { username: stri
         {user.bio && <p className="mt-2 text-gray-600">{user.bio}</p>}
 
         <ProfileLinks
-          links={user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active, thumbnail: l.thumbnail }))}
+          links={user.links.map(l => ({
+            id: l.id,
+            title: l.title,
+            url: l.url,
+            active: l.active,
+            thumbnail: l.thumbnail,
+            visibleFrom: l.visibleFrom ? l.visibleFrom.toISOString() : null,
+            visibleUntil: l.visibleUntil ? l.visibleUntil.toISOString() : null,
+          }))}
           borderColor={user.theme?.primary ?? '#6366F1'}
           hoverEnabled={user.hoverEnabled}
           shadowEnabled={user.shadowEnabled}

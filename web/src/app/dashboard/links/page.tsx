@@ -44,10 +44,20 @@ function SortableLinkRow({
     transition,
   };
 
+  const now = new Date();
+  const fromDate = item.visibleFrom ? new Date(item.visibleFrom) : null;
+  const untilDate = item.visibleUntil ? new Date(item.visibleUntil) : null;
+  const upcoming = fromDate ? fromDate > now : false;
+  const expired = untilDate ? untilDate < now : false;
+
   return (
     <li ref={setNodeRef} style={style} className="rounded border p-3 bg-white">
       <div className="flex items-center justify-between">
-        <div className="font-semibold">{item.title || 'Untitled'}</div>
+        <div className="font-semibold flex items-center gap-2">
+          {item.title || 'Untitled'}
+          {upcoming && <span className="rounded bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5">Upcoming</span>}
+          {expired && <span className="rounded bg-red-100 text-red-700 text-xs px-2 py-0.5">Expired</span>}
+        </div>
         <button
           className="cursor-grab text-sm text-gray-600"
           {...attributes}

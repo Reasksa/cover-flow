@@ -9,6 +9,8 @@ type LinkItem = {
   url: string;
   active: boolean;
   thumbnail?: string | null;
+  visibleFrom?: string | null;
+  visibleUntil?: string | null;
 };
 
 export default function ProfileLinks({
@@ -43,30 +45,39 @@ export default function ProfileLinks({
 
   const hoverClasses = `${hoverEnabled ? 'hover:scale-105' : ''} ${shadowEnabled ? 'hover:shadow-lg' : ''}`.trim();
 
+  const now = new Date();
+  const isWithinSchedule = (l: LinkItem) => {
+    const fromOk = l.visibleFrom ? new Date(l.visibleFrom) <= now : true;
+    const untilOk = l.visibleUntil ? new Date(l.visibleUntil) >= now : true;
+    return fromOk && untilOk;
+  };
+
   return (
     <div className="mt-6 space-y-3">
-      {links.filter((l) => l.active).map((l) => (
-        <Link
-          key={l.id}
-          href={l.url}
-          className={`block rounded-lg border p-3 transition ${hoverClasses}`}
-          style={{ borderColor }}
-          onClick={() => trackClick(l.id)}
-        >
-          <div className="flex items-center gap-3">
-            {showThumbnails && l.thumbnail ? (
-              <Image
-                src={l.thumbnail}
-                alt=""
-                width={64}
-                height={40}
-                className="rounded object-cover"
-              />
-            ) : null}
-            <span>{l.title}</span>
-          </div>
-        </Link>
-      ))}
+      {links
+        .filter((l) => l.active && isWithinSchedule(l))
+        .map((l) => (
+          <Link
+            key={l.id}
+            href={l.url}
+            className={`block rounded-lg border p-3 transition ${hoverClasses}`}
+            style={{ borderColor }}
+            onClick={() => trackClick(l.id)}
+          >
+            <div className="flex items-center gap-3">
+              {showThumbnails && l.thumbnail ? (
+                <Image
+                  src={l.thumbnail}
+                  alt=""
+                  width={64}
+                  height={40}
+                  className="rounded object-cover"
+                />
+              ) : null}
+              <span>{l.title}</span>
+            </div>
+          </Link>
+        ))}
     </div>
   );
 }
