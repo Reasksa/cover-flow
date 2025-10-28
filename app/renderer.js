@@ -37,6 +37,13 @@
   const scheduleAtInput = document.getElementById('scheduleAt');
   const scheduleBtn = document.getElementById('scheduleBtn');
 
+  // Calendar
+  const calendarEl = document.getElementById('calendar');
+  const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+  const prevMonthBtn = document.getElementById('prevMonthBtn');
+  const nextMonthBtn = document.getElementById('nextMonthBtn');
+  let calendarDate = new Date();
+
   const openDataDirBtn = document.getElementById('openDataDirBtn');
   const exportDataBtn = document.getElementById('exportDataBtn');
   const importDataBtn = document.getElementById('importDataBtn');
@@ -125,15 +132,18 @@
         log(res.success ? `Opened posting page for ${job.platform}` : `Posting failed: ${res.error}`);
         await refreshQueue();
         await refreshOverview();
+        await renderCalendar(); // keep calendar in sync
       });
       li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
         await api.posting.remove(job.id);
         log(`Removed scheduled job ${job.id}`);
         await refreshQueue();
         await refreshOverview();
+        await renderCalendar(); // keep calendar in sync
       });
       queueList.appendChild(li);
     });
+    await renderCalendar();
   }
 
   // Accounts
@@ -219,6 +229,7 @@
     await api.posting.queue({ ...lastQueuedDraft, scheduleAt });
     await refreshQueue();
     await refreshOverview();
+    await renderCalendar();
     log('Scheduled post added');
   });
 
@@ -263,10 +274,85 @@
     }
   });
 
+  // Calendar rendering
+  function startOfMonth(d) {
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+  function endOfMonth(d) {
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  }
+  function weekdayIndex(d) {
+    return d.getDay(); // 0-6 starting Sunday
+  }
+  async function renderCalendar() {
+    const queue = await api.posting.list();
+    const monthStart = startOfMonth(calendarDate);
+    const monthEnd = endOfMonth(calendarDate);
+    calendarMonthLabel.textContent = monthStart.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+    // Build cells
+    const cells = [];
+    const beforeDays = weekdayIndex(monthStart);
+    const totalDays = monthEnd.getDate();
+    const afterDays = (7 - ((beforeDays + totalDays) % 7)) % 7;
+    const totalCells = beforeDays + totalDays + afterDays;
+
+    calendarEl.innerHTML = '';
+    for (let i = 0; i < totalCells; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'day';
+      let dayNumber = i - beforeDays + 1;
+      if (i < beforeDays || dayNumber > totalDays) {
+        cell.classList.add('empty');
+        calendarEl.appendChild(cell);
+        continue;
+      }
+      const cellDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), dayNumber);
+      const dateEl = document.createElement('div');
+      dateEl.className = 'date';
+      dateEl.textContent = dayNumber;
+      cell.appendChild(dateEl);
+
+      const jobsForDay = queue.filter(j => {
+        const jd = new Date(j.scheduleAt);
+        return jd.getFullYear() === cellDate.getFullYear()
+          && jd.getMonth() === cellDate.getMonth()
+          && jd.getDate() === cellDate.getDate();
+      });
+
+      jobsForDay.forEach(j => {
+        const jobEl = document.createElement('div');
+        jobEl.className = 'job';
+        jobEl.textContent = `${new Date(j.scheduleAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • ${j.platform}`;
+        jobEl.title = j.caption;
+        jobEl.addEventListener('click', async () => {
+          const res = await api.posting.run(j.id);
+          log(res.success ? `Opened posting page for ${j.platform}` : `Posting failed: ${res.error}`);
+          await refreshQueue();
+          await refreshOverview();
+          await renderCalendar();
+        });
+        cell.appendChild(jobEl);
+      });
+
+      calendarEl.appendChild(cell);
+    }
+  }
+
+  prevMonthBtn.addEventListener('click', async () => {
+    calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1);
+    await renderCalendar();
+  });
+  nextMonthBtn.addEventListener('click', async () => {
+    calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
+    await renderCalendar();
+  });
+
   // Init
   (async function init() {
     await refreshAccounts();
     await refreshQueue();
     await refreshOverview();
+    await renderCalendar();
   })();
 })();

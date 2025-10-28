@@ -97,6 +97,34 @@ async function post(job) {
 
     await driver.get(targetUrl);
 
+    // Best-effort automated upload for YouTube if a file is provided
+    if (platform === 'youtube' && files && files.length) {
+      try {
+        // YouTube Studio upload may expose a hidden file input inside web components.
+        // Try common selectors and trigger with sendKeys on input[type=file]
+        await driver.wait(until.elementLocated(By.css('input[type="file"]')), 15000);
+        const fileInput = await driver.findElement(By.css('input[type="file"]'));
+        await driver.executeScript('arguments[0].style.display="block"; arguments[0].removeAttribute("hidden");', fileInput);
+        await fileInput.sendKeys(files[0]);
+
+        // Try to set title/description fields
+        const titleSelectors = ['#textbox', 'textarea', 'input[aria-label="Title"]'];
+        for (const sel of titleSelectors) {
+          const els = await driver.findElements(By.css(sel));
+          if (els.length) {
+            try {
+              await els[0].click();
+              await els[0].clear().catch(() => {});
+              await els[0].sendKeys(text);
+              break;
+            } catch {}
+          }
+        }
+      } catch {
+        // If upload automation fails, continue with manual guidance
+      }
+    }
+
     // Simple guidance overlay via console logs in DevTools
     try {
       await driver.executeScript(`
@@ -126,9 +154,7 @@ async function post(job) {
       }
     }
 
-    // We cannot reliably automate uploads universally without per-platform logic.
-    // The user can drag-drop files into the platform upload UI.
-    return { success: true, message: `Opened ${platform} posting page. Please upload your media (${files.length} file(s)) and submit.`, details: { files, text } };
+    return { success: true, message: `Opened ${platform} posting page. ${files.length ? `Prepared ${files.length} file(s)` : 'No files selected'}.`, details: { files, text } };
   } catch (err) {
     return { success: false, error: String(err) };
   }

@@ -45,8 +45,9 @@ Windows desktop application for multi-platform social posting, scheduling, and a
 2. Output installer will be in `dist/Reaksaio-Setup-<version>.exe`.
 
 Notes:
-- If ChromeDriver version mismatch occurs, update Chrome or install a compatible driver. Selenium 4 usually manages this automatically.
-- Login and posting flows are user-assisted. Full automation per platform can be added modularly in `automation/`.
+- If ChromeDriver version mismatch occurs, update Chrome or install a compatible driver. Selenium 4 usually manages Chrome for Testing automatically in many cases.
+- Login and posting flows are user-assisted. A basic YouTube upload automation is included (file input + title best-effort). Full automation per platform can be added modularly in `automation/`.
+- The scheduler loop runs every 30s to open due jobs automatically.
 
 ## Security
 
