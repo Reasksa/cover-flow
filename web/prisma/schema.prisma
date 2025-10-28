@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  bio       String?
+  avatar    String?
+  headline  String?
+  theme     Theme?   @relation(fields: [themeId], references: [id])
+  themeId   String?
+  links     Link[]
+  socials   Social[]
+  analytics Analytic[]
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Link {
+  id           String   @id @default(cuid())
+  title        String
+  url          String
+  icon         String?
+  thumbnail    String?
+  order        Int
+  active       Boolean  @default(true)
+  collection   String?
+  visibleFrom  DateTime?
+  visibleUntil DateTime?
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  clicks       Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Theme {
+  id         String  @id @default(cuid())
+  name       String
+  primary    String  @default("#6366F1")
+  secondary  String  @default("#F59E0B")
+  background String  @default("#FFFFFF")
+  font       String  @default("Inter")
+  isDefault  Boolean @default(false)
+  users      User[]
+}
+
+model Social {
+  id       String @id @default(cuid())
+  platform String
+  handle   String?
+  url      String
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+}
+
+model Analytic {
+  id       String   @id @default(cuid())
+  linkId   String
+  link     Link     @relation(fields: [linkId], references: [id])
+  clicks   Int      @default(0)
+  date     DateTime
+  device   String?
+  referrer String?
+}
+
+enum Role {
+  USER
+  ADMIN
+}
