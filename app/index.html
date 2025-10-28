@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Reaksaio</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:; script-src 'self' 'unsafe-inline';">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="title">Reaksaio</div>
+      <div class="subtitle">Multi-platform posting, scheduling, and automation</div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-target="dashboard">Dashboard</button>
+      <button class="tab" data-target="accounts">Accounts</button>
+      <button class="tab" data-target="uploads">Uploads</button>
+      <button class="tab" data-target="scheduler">Scheduler</button>
+      <button class="tab" data-target="settings">Settings</button>
+    </nav>
+
+    <main class="views">
+      <section id="dashboard" class="view active">
+        <div class="card">
+          <h3>Overview</h3>
+          <div id="overview">
+            <div>Linked Accounts: <span id="linkedCount">0</span></div>
+            <div>Queued Posts: <span id="queuedCount">0</span></div>
+            <div>Next Scheduled: <span id="nextScheduled">-</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Recent Activity</h3>
+          <ul id="activityLog" class="log"></ul>
+        </div>
+      </section>
+
+      <section id="accounts" class="view">
+        <div class="card">
+          <h3>Linked Accounts</h3>
+          <ul id="accountsList" class="list"></ul>
+        </div>
+        <div class="card">
+          <h3>Add Account</h3>
+          <div class="form-row">
+            <label>Platform</label>
+            <select id="platformSelect">
+              <option value="youtube">YouTube</option>
+              <option value="tiktok">TikTok</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="twitter">Twitter</option>
+              <option value="linkedin">LinkedIn</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Display Name</label>
+            <input id="displayName" placeholder="e.g., Brand YouTube" />
+          </div>
+          <div class="actions">
+            <button id="addAccountBtn">Add</button>
+          </div>
+          <p class="hint">Note: Authentication happens in a Chrome window via automation. 2FA/CAPTCHA are user-assisted.</p>
+        </div>
+      </section>
+
+      <section id="uploads" class="view">
+        <div class="card">
+          <h3>Prepare Post</h3>
+          <div class="form-row">
+            <label>Account</label>
+            <select id="postAccount"></select>
+          </div>
+          <div class="form-row">
+            <label>Platform</label>
+            <select id="postPlatform">
+              <option value="youtube">YouTube</option>
+              <option value="tiktok">TikTok</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+              <option value="twitter">Twitter</option>
+              <option value="linkedin">LinkedIn</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Caption</label>
+            <textarea id="caption" rows="3" placeholder="Write caption..."></textarea>
+          </div>
+          <div class="form-row">
+            <label>Hashtags</label>
+            <input id="hashtags" placeholder="#tag1 #tag2" />
+          </div>
+          <div class="form-row">
+            <label>Media</label>
+            <div id="dropzone" class="dropzone">Drag & drop files here or <button id="browseBtn" type="button">Browse</button></div>
+            <ul id="selectedFiles" class="list"></ul>
+          </div>
+          <div class="actions">
+            <button id="queueNowBtn">Queue Now</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="scheduler" class="view">
+        <div class="card">
+          <h3>Scheduled & Queued Posts</h3>
+          <ul id="queueList" class="list"></ul>
+        </div>
+        <div class="card">
+          <h3>Schedule New Post</h3>
+          <div class="form-row">
+            <label>Date/Time</label>
+            <input id="scheduleAt" type="datetime-local" />
+          </div>
+          <div class="actions">
+            <button id="scheduleBtn">Add to Schedule</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings" class="view">
+        <div class="card">
+          <h3>Settings</h3>
+          <p>Data is stored locally and encrypted. No credentials leave your device.</p>
+          <div class="actions">
+            <button id="openDataDirBtn">Open Data Folder</button>
+            <button id="exportDataBtn">Export Data</button>
+            <input id="importDataInput" type="file" style="display:none" />
+            <button id="importDataBtn">Import Data</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
