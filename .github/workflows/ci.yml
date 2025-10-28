@@ -59,6 +59,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nuelink_clone?schema=public
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: test-secret
+      ENABLE_TEST_ROUTES: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
