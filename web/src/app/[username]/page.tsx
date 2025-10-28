@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProfileLinks from '@/src/components/ProfileLinks';
+import { fontClass } from '@/src/lib/fonts';
 
 export default async function ProfilePage({ params }: { params: { username: string } }) {
   const user = await prisma.user.findUnique({
@@ -18,12 +19,14 @@ export default async function ProfilePage({ params }: { params: { username: stri
     );
   }
 
+  const fontCls = fontClass(user.selectedFont || 'Inter');
+
   return (
     <main
       className="min-h-screen"
       style={{ background: user.theme?.background ?? '#FFFFFF' }}
     >
-      <section className="mx-auto max-w-xl px-6 py-12 text-center">
+      <section className={`mx-auto max-w-xl px-6 py-12 text-center ${fontCls}`}>
         {user.avatar && (
           <Image
             src={user.avatar}
@@ -39,10 +42,11 @@ export default async function ProfilePage({ params }: { params: { username: stri
         {user.bio && <p className="mt-2 text-gray-600">{user.bio}</p>}
 
         <ProfileLinks
-          links={user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active }))}
+          links={user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active, thumbnail: l.thumbnail }))}
           borderColor={user.theme?.primary ?? '#6366F1'}
           hoverEnabled={user.hoverEnabled}
           shadowEnabled={user.shadowEnabled}
+          showThumbnails={true}
         />
 
         {user.socials?.length ? (

@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 type LinkItem = {
   id: string;
   title: string;
   url: string;
   active: boolean;
+  thumbnail?: string | null;
 };
 
 export default function ProfileLinks({
@@ -14,11 +16,13 @@ export default function ProfileLinks({
   borderColor,
   hoverEnabled = true,
   shadowEnabled = true,
+  showThumbnails = true,
 }: {
   links: LinkItem[];
   borderColor: string;
   hoverEnabled?: boolean;
   shadowEnabled?: boolean;
+  showThumbnails?: boolean;
 }) {
   const trackClick = async (linkId: string) => {
     try {
@@ -49,7 +53,18 @@ export default function ProfileLinks({
           style={{ borderColor }}
           onClick={() => trackClick(l.id)}
         >
-          {l.title}
+          <div className="flex items-center gap-3">
+            {showThumbnails && l.thumbnail ? (
+              <Image
+                src={l.thumbnail}
+                alt=""
+                width={64}
+                height={40}
+                className="rounded object-cover"
+              />
+            ) : null}
+            <span>{l.title}</span>
+          </div>
         </Link>
       ))}
     </div>
