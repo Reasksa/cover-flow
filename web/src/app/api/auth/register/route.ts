@@ -1,6 +1,7 @@
-import { prisma } from '@/src/lib/prisma';
+import { prisma } from '../../../lib/prisma';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { hash } from 'bcryptjs';
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -14,12 +15,12 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { email, username } = parsed.data;
+  const { email, username, password } = parsed.data;
 
-  // Note: For scaffold, we are not storing password. Replace with hashed password in real app.
   try {
+    const passwordHash = await hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, username }
+      data: { email, username, passwordHash }
     });
     return NextResponse.json({ id: user.id, email: user.email, username: user.username }, { status: 201 });
   } catch (e: any) {

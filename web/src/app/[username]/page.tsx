@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import Image from 'next/image';
 import Link from 'next/link';
+import ProfileLinks from '@/src/components/ProfileLinks';
 
 export default async function ProfilePage({ params }: { params: { username: string } }) {
   const user = await prisma.user.findUnique({
@@ -37,20 +38,10 @@ export default async function ProfilePage({ params }: { params: { username: stri
         </h1>
         {user.bio && <p className="mt-2 text-gray-600">{user.bio}</p>}
 
-        <div className="mt-6 space-y-3">
-          {user.links
-            .filter((l) => l.active)
-            .map((l) => (
-              <Link
-                key={l.id}
-                href={l.url}
-                className="block rounded-lg border p-3 hover:scale-105 hover:shadow-lg transition"
-                style={{ borderColor: user.theme?.primary ?? '#6366F1' }}
-              >
-                {l.title}
-              </Link>
-            ))}
-        </div>
+        <ProfileLinks
+          links={user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active }))}
+          borderColor={user.theme?.primary ?? '#6366F1'}
+        />
 
         {user.socials?.length ? (
           <div className="mt-8 flex justify-center gap-4">

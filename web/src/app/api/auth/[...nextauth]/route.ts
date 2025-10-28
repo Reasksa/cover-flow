@@ -4,6 +4,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "../../../lib/prisma";
+import { compare } from "bcryptjs";
 
 const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -18,9 +19,9 @@ const handler = NextAuth({
       authorize: async (credentials) => {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await prisma.user.findUnique({ where: { email: credentials.email } });
-        // In a real system, store hashed passwords and compare here
-        if (!user) return null;
-        // Placeholder: accept any non-empty password for scaffold (replace with hash check)
+        if (!user || !user.passwordHash) return null;
+        const ok = await compare(credentials.password, user.passwordHash);
+        if (!ok) return null;
         return { id: user.id, email: user.email, name: user.name };
       },
     }),
