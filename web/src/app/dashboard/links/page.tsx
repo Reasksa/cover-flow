@@ -29,12 +29,14 @@ function SortableLinkRow({
   item,
   onChange,
   onSave,
-  onDelete
+  onDelete,
+  onUploadThumbnail,
 }: {
   item: LinkItem;
   onChange: (partial: Partial<LinkItem>) => void;
   onSave: () => void;
   onDelete: () => void;
+  onUploadThumbnail: (file: File | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
   const style = {
@@ -91,8 +93,21 @@ function SortableLinkRow({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="mt-3 grid md:grid-cols-2 gap-2 items-center">
+        <div className="flex items-center gap-3">
+          {item.thumbnail ? (
+            <img src={item.thumbnail} alt="thumbnail" className="h-12 w-20 object-cover rounded" />
+          ) : (
+            <div className="h-12 w-20 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500">No thumb</div>
+          )}
+          <input
+            className="rounded border p-2"
+            type="file"
+            accept="image/*"
+            onChange={(e) => onUploadThumbnail(e.target.files?.[0] ?? null)}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm justify-end">
           <input
             type="checkbox"
             checked={item.active}
@@ -100,10 +115,11 @@ function SortableLinkRow({
           />
           Active
         </label>
-        <div className="flex gap-2">
-          <button className="rounded border px-3 py-1" onClick={onSave}>Save</button>
-          <button className="rounded border px-3 py-1 text-red-600" onClick={onDelete}>Delete</button>
-        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <button className="rounded border px-3 py-1" onClick={onSave}>Save</button>
+        <button className="rounded border px-3 py-1 text-red-600" onClick={onDelete}>Delete</button>
       </div>
     </li>
   );
@@ -196,6 +212,10 @@ export default function LinksPage() {
       alert('Failed to delete link');
     }
   };
+
+  const uploadThumbnail = async (index: number, file: File | null) => {
+    if (!file) return;
+    const sigRes = };
 
   if (status === 'loading') {
     return <main className="p-6">Loading...</main>;

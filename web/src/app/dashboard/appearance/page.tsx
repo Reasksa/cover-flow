@@ -19,6 +19,9 @@ type Me = {
   avatar?: string | null;
   links: { id: string; title: string; url: string; active: boolean }[];
   theme?: { primary: string; background: string } | null;
+  selectedFont?: string | null;
+  hoverEnabled?: boolean;
+  shadowEnabled?: boolean;
 };
 
 export default function AppearancePage() {
@@ -26,10 +29,18 @@ export default function AppearancePage() {
   const [selectedThemeId, setSelectedThemeId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [me, setMe] = useState<Me | null>(null);
+  const [font, setFont] = useState<'Inter' | 'Poppins' | 'Montserrat' | 'Nunito'>('Inter');
+  const [hoverEnabled, setHoverEnabled] = useState(true);
+  const [shadowEnabled, setShadowEnabled] = useState(true);
 
   useEffect(() => {
     fetch('/api/themes').then((r) => r.json()).then(setThemes);
-    fetch('/api/me').then((r) => r.json()).then((data) => setMe(data));
+    fetch('/api/me').then((r) => r.json()).then((data) => {
+      setMe(data);
+      setFont((data.selectedFont as any) || 'Inter');
+      setHoverEnabled(Boolean(data.hoverEnabled));
+      setShadowEnabled(Boolean(data.shadowEnabled));
+    });
   }, []);
 
   const applyTheme = async () => {
@@ -45,7 +56,22 @@ export default function AppearancePage() {
       alert('Failed to apply theme');
       return;
     }
-    // Refresh me data to reflect the new theme in preview
+    const refreshed = await fetch('/api/me').then((r) => r.json());
+    setMe(refreshed);
+  };
+
+  const applyAppearance = async () => {
+    setSaving(true);
+    const res = await fetch('/api/me/appearance', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedFont: font, hoverEnabled, shadowEnabled }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      alert('Failed to save appearance');
+      return;
+    }
     const refreshed = await fetch('/api/me').then((r) => r.json());
     setMe(refreshed);
   };
@@ -59,7 +85,7 @@ export default function AppearancePage() {
   return (
     <main className="p-6">
       <h1 className="text-2xl font-bold">Appearance</h1>
-      <p className="mt-2 text-gray-600">Choose a theme. Your public profile updates instantly.</p>
+      <p className="mt-2 text-gray-600">Choose a theme and style options. Your public profile updates instantly.</p>
 
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         {themes.map((t) => (
@@ -86,17 +112,48 @@ export default function AppearancePage() {
         {saving ? 'Saving...' : 'Apply Theme'}
       </button>
 
+      <div className="mt-8 grid md:grid-cols-3 gap-4">
+        <div className="rounded border p-4">
+          <h2 className="font-semibold mb-2">Font</h2>
+          <select className="w-full rounded border p-2" value={font} onChange={(e) => setFont(e.target.value as any)}>
+            <option value="Inter">Inter</option>
+            <option value="Poppins">Poppins</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Nunito">Nunito</option>
+          </select>
+        </div>
+        <div className="rounded border p-4">
+          <h2 className="font-semibold mb-2">Hover & Shadow</h2>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={hoverEnabled} onChange={(e) => setHoverEnabled(e.target.checked)} />
+            Hover scale
+          </label>
+          <label className="mt-2 flex items-center gap-2">
+            <input type="checkbox" checked={shadowEnabled} onChange={(e) => setShadowEnabled(e.target.checked)} />
+            Shadow on hover
+          </label>
+        </div>
+        <div className="rounded border p-4">
+          <h2 className="font-semibold mb-2">Apply</h2>
+          <button className="rounded bg-primary px-4 py-2 text-white" onClick={applyAppearance} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Appearance'}
+          </button>
+        </div>
+      </div>
+
       <div className="mt-8">
         <h2 className="font-semibold mb-2">Live preview</h2>
         {me && activeTheme ? (
-          <ProfilePreview
-            username={me.username}
-            name={me.name}
-            bio={me.bio}
-            avatar={me.avatar}
-            links={me.links}
-            theme={{ primary: activeTheme.primary, background: activeTheme.background }}
-          />
+          <div style={{ fontFamily: me.selectedFont || 'Inter' }}>
+            <ProfilePreview
+              username={me.username}
+              name={me.name}
+              bio={me.bio}
+              avatar={me.avatar}
+              links={me.links}
+              theme={{ primary: activeTheme.primary, background: activeTheme.background }}
+            />
+          </div>
         ) : (
           <p className="text-gray-600">Loading preview…</p>
         )}

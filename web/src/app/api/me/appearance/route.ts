@@ -7,6 +7,7 @@ import { authOptions } from '../../../../lib/auth';
 const AppearanceSchema = z.object({
   hoverEnabled: z.boolean().optional(),
   shadowEnabled: z.boolean().optional(),
+  selectedFont: z.enum(['Inter', 'Poppins', 'Montserrat', 'Nunito']).optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -28,8 +29,9 @@ export async function PATCH(req: Request) {
     data: {
       ...('hoverEnabled' in parsed.data ? { hoverEnabled: parsed.data.hoverEnabled } : {}),
       ...('shadowEnabled' in parsed.data ? { shadowEnabled: parsed.data.shadowEnabled } : {}),
+      ...('selectedFont' in parsed.data ? { selectedFont: parsed.data.selectedFont } : {}),
     },
-    select: { hoverEnabled: true, shadowEnabled: true },
+    select: { hoverEnabled: true, shadowEnabled: true, selectedFont: true },
   });
 
   return NextResponse.json(updated);

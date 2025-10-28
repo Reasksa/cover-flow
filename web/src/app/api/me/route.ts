@@ -23,6 +23,7 @@ export async function GET() {
     avatar: user.avatar,
     hoverEnabled: user.hoverEnabled,
     shadowEnabled: user.shadowEnabled,
+    selectedFont: user.selectedFont,
     theme: user.theme ? { primary: user.theme.primary, background: user.theme.background } : null,
     links: user.links.map(l => ({ id: l.id, title: l.title, url: l.url, active: l.active, order: l.order })),
     socials: user.socials,
