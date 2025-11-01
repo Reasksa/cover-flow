@@ -1,0 +1,365 @@
+'use client';
+
+import { useSession, signIn } from 'next-auth/react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  DndContext,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+type LinkItem = {
+  id: string;
+  title: string;
+  url: string;
+  order: number;
+  active: boolean;
+  collection?: string | null;
+  visibleFrom?: string | null;
+  visibleUntil?: string | null;
+};
+
+function SortableLinkRow({
+  item,
+  onChange,
+  onSave,
+  onDelete,
+  onUploadThumbnail,
+}: {
+  item: LinkItem;
+  onChange: (partial: Partial<LinkItem>) => void;
+  onSave: () => void;
+  onDelete: () => void;
+  onUploadThumbnail: (file: File | null) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const now = new Date();
+  const fromDate = item.visibleFrom ? new Date(item.visibleFrom) : null;
+  const untilDate = item.visibleUntil ? new Date(item.visibleUntil) : null;
+  const upcoming = fromDate ? fromDate > now : false;
+  const expired = untilDate ? untilDate < now : false;
+
+  return (
+    <li ref={setNodeRef} style={style} className="rounded border p-3 bg-white">
+      <div className="flex items-center justify-between">
+        <div className="font-semibold flex items-center gap-2">
+          {item.title || 'Untitled'}
+          {upcoming && <span className="rounded bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5">Upcoming</span>}
+          {expired && <span className="rounded bg-red-100 text-red-700 text-xs px-2 py-0.5">Expired</span>}
+        </div>
+        <button
+          className="cursor-grab text-sm text-gray-600"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag handle"
+        >
+          :::
+        </button>
+      </div>
+
+      <div className="mt-3 grid md:grid-cols-2 gap-2">
+        <input
+          className="rounded border p-2"
+          placeholder="Title"
+          value={item.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+        />
+        <input
+          className="rounded border p-2"
+          placeholder="https://example.com"
+          value={item.url}
+          onChange={(e) => onChange({ url: e.target.value })}
+        />
+        <input
+          className="rounded border p-2"
+          placeholder="Collection (optional)"
+          value={item.collection ?? ''}
+          onChange={(e) => onChange({ collection: e.target.value })}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="rounded border p-2"
+            type="datetime-local"
+            value={item.visibleFrom ?? ''}
+            onChange={(e) => onChange({ visibleFrom: e.target.value })}
+          />
+          <input
+            className="rounded border p-2"
+            type="datetime-local"
+            value={item.visibleUntil ?? ''}
+            onChange={(e) => onChange({ visibleUntil: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="mt-3 grid md:grid-cols-2 gap-2 items-center">
+        <div className="flex items-center gap-3">
+          {item.thumbnail ? (
+            <img src={item.thumbnail} alt="thumbnail" className="h-12 w-20 object-cover rounded" />
+          ) : (
+            <div className="h-12 w-20 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-500">No thumb</div>
+          )}
+          <input
+            className="rounded border p-2"
+            type="file"
+            accept="image/*"
+            onChange={(e) => onUploadThumbnail(e.target.files?.[0] ?? null)}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm justify-end">
+          <input
+            type="checkbox"
+            checked={item.active}
+            onChange={(e) => onChange({ active: e.target.checked })}
+          />
+          Active
+        </label>
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <button className="rounded border px-3 py-1" onClick={onSave}>Save</button>
+        <button className="rounded border px-3 py-1 text-red-600" onClick={onDelete}>Delete</button>
+      </div>
+    </li>
+  );
+}
+
+export default function LinksPage() {
+  const { status } = useSession();
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [title, setTitle] = useState('');
+  const [url, setUrl] = useState('');
+  const [collection, setCollection] = useState('');
+  const [visibleFrom, setVisibleFrom] = useState('');
+  const [visibleUntil, setVisibleUntil] = useState('');
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/links')
+        .then((r) => r.json())
+        .then((data) => setLinks(data));
+    }
+  }, [status]);
+
+  const addLink = async () => {
+    const res = await fetch('/api/links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        url,
+        collection: collection || undefined,
+        visibleFrom: visibleFrom || undefined,
+        visibleUntil: visibleUntil || undefined
+      }),
+    });
+    if (res.ok) {
+      const newLink = await res.json();
+      setLinks((prev) => [...prev, newLink]);
+      setTitle('');
+      setUrl('');
+      setCollection('');
+      setVisibleFrom('');
+      setVisibleUntil('');
+    } else {
+      alert('Failed to add link');
+    }
+  };
+
+  // Collections filter
+  const [filterCollection, setFilterCollection] = useState<string>('All');
+  const collections = useMemo(
+    () => Array.from(new Set(links.map((l) => l.collection).filter((c): c is string => !!c))),
+    [links]
+  );
+  const filteredLinks = useMemo(
+    () => (filterCollection === 'All' ? links : links.filter((l) => (l.collection || '') === filterCollection)),
+    [links, filterCollection]
+  );
+
+  const ids = useMemo(() => filteredLinks.map((l) => l.id), [filteredLinks]);
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = links.findIndex((l) => l.id === active.id);
+    const newIndex = links.findIndex((l) => l.id === over.id);
+    const newOrder = arrayMove(links, oldIndex, newIndex).map((l, idx) => ({ ...l, order: idx }));
+
+    setLinks(newOrder);
+
+    // Persist order
+    const res = await fetch('/api/links/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: newOrder.map((l) => ({ id: l.id, order: l.order })) }),
+    });
+    if (!res.ok) {
+      alert('Failed to reorder');
+    }
+  };
+
+  const saveLink = async (id: string, partial: Partial<LinkItem>) => {
+    const res = await fetch(`/api/links/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(partial),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, ...updated } : l)));
+    } else {
+      alert('Failed to save link');
+    }
+  };
+
+  const deleteLink = async (id: string) => {
+    const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setLinks((prev) => prev.filter((l) => l.id !== id));
+    } else {
+      alert('Failed to delete link');
+    }
+  };
+
+  const uploadThumbnail = async (index: number, file: File | null) => {
+    if (!file) return;
+    const sigRes = await fetch('/api/uploads/signature');
+    const sig = await sigRes.json();
+    if (!sig?.signature) {
+      alert('Upload signature error');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', sig.apiKey);
+    formData.append('timestamp', String(sig.timestamp));
+    formData.append('signature', sig.signature);
+    if (sig.uploadPreset) {
+      formData.append('upload_preset', sig.uploadPreset);
+    }
+
+    const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    const uploaded = await uploadRes.json();
+    if (uploaded?.public_id && uploaded?.format) {
+      const thumbUrl = `https://res.cloudinary.com/${sig.cloudName}/image/upload/c_fill,r_12,w_320,h_180/${uploaded.public_id}.${uploaded.format}`;
+      setLinks(prev => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], thumbnail: thumbUrl } as any;
+        return copy;
+      });
+    } else {
+      alert('Upload failed');
+    }
+  };
+
+  if (status === 'loading') {
+    return <main className="p-6">Loading...</main>;
+  }
+
+  if (status !== 'authenticated') {
+    return (
+      <main className="p-6">
+        <p>You need to sign in to manage links.</p>
+        <button className="mt-3 rounded bg-primary px-4 py-2 text-white" onClick={() => signIn()}>
+          Sign In
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main className="p-6">
+      <h1 className="text-2xl font-bold">Your Links</h1>
+
+      <div className="mt-6 grid md:grid-cols-2 gap-2">
+        <input
+          className="rounded border p-2"
+          placeholder="Link title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          className="rounded border p-2"
+          placeholder="https://example.com"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <input
+          className="rounded border p-2"
+          placeholder="Collection (optional)"
+          value={collection}
+          onChange={(e) => setCollection(e.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="rounded border p-2"
+            type="datetime-local"
+            value={visibleFrom}
+            onChange={(e) => setVisibleFrom(e.target.value)}
+          />
+          <input
+            className="rounded border p-2"
+            type="datetime-local"
+            value={visibleUntil}
+            onChange={(e) => setVisibleUntil(e.target.value)}
+          />
+        </div>
+        <button className="rounded bg-primary px-4 py-2 text-white" onClick={addLink}>
+          Add
+        </button>
+      </div>
+
+      <div className="mt-6">
+        <div className="mb-4 flex items-center gap-2">
+          <label className="text-sm text-gray-600">Filter by collection:</label>
+          <select
+            className="rounded border p-2"
+            value={filterCollection}
+            onChange={(e) => setFilterCollection(e.target.value)}
+          >
+            <option>All</option>
+            {collections.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <DndContext onDragEnd={onDragEnd}>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-2">
+              {filteredLinks.map((item, idx) => (
+                <SortableLinkRow
+                  key={item.id}
+                  item={item}
+                  onChange={(partial) =>
+                    setLinks((prev) =>
+                      prev.map((l) => (l.id === item.id ? { ...l, ...partial } : l))
+                    )
+                  }
+                  onSave={() => saveLink(item.id, item)}
+                  onDelete={() => deleteLink(item.id)}
+                  onUploadThumbnail={(file) => uploadThumbnail(idx, file)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      </div>
+    </main>
+  );
+}
