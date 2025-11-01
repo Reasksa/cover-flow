@@ -26,15 +26,19 @@
 
   const postAccount = document.getElementById('postAccount');
   const postPlatform = document.getElementById('postPlatform');
+  const templateSelect = document.getElementById('templateSelect');
   const captionInput = document.getElementById('caption');
+  const hashtagSetSelect = document.getElementById('hashtagSetSelect');
   const hashtagsInput = document.getElementById('hashtags');
   const dropzone = document.getElementById('dropzone');
   const browseBtn = document.getElementById('browseBtn');
   const selectedFilesList = document.getElementById('selectedFiles');
   const queueNowBtn = document.getElementById('queueNowBtn');
+  const youtubeUploadBtn = document.getElementById('youtubeUploadBtn');
 
   const queueList = document.getElementById('queueList');
   const scheduleAtInput = document.getElementById('scheduleAt');
+  const repeatSelect = document.getElementById('repeatSelect');
   const scheduleBtn = document.getElementById('scheduleBtn');
 
   // Calendar
@@ -48,6 +52,32 @@
   const exportDataBtn = document.getElementById('exportDataBtn');
   const importDataBtn = document.getElementById('importDataBtn');
   const importDataInput = document.getElementById('importDataInput');
+
+  // Library
+  const libraryDropzone = document.getElementById('libraryDropzone');
+  const libraryBrowseBtn = document.getElementById('libraryBrowseBtn');
+  const libraryList = document.getElementById('libraryList');
+
+  // Templates
+  const tplName = document.getElementById('tplName');
+  const tplContent = document.getElementById('tplContent');
+  const tplAddBtn = document.getElementById('tplAddBtn');
+  const tplList = document.getElementById('tplList');
+
+  // Hashtags
+  const hsName = document.getElementById('hsName');
+  const hsTags = document.getElementById('hsTags');
+  const hsAddBtn = document.getElementById('hsAddBtn');
+  const hsList = document.getElementById('hsList');
+
+  // Analytics
+  const analyticsSummary = document.getElementById('analyticsSummary');
+
+  // YouTube API settings
+  const ytClientId = document.getElementById('ytClientId');
+  const ytClientSecret = document.getElementById('ytClientSecret');
+  const ytSaveBtn = document.getElementById('ytSaveBtn');
+  const ytAuthBtn = document.getElementById('ytAuthBtn');
 
   // State
   let selectedFiles = [];
@@ -120,7 +150,7 @@
       li.innerHTML = `
         <div>
           <div><strong>${job.platform}</strong> — ${job.caption.slice(0, 50)}${job.caption.length > 50 ? '...' : ''}</div>
-          <small class="muted">Scheduled ${new Date(job.scheduleAt).toLocaleString()} | Files: ${job.files.length} | Status: ${job.status}</small>
+          <small class="muted">Scheduled ${new Date(job.scheduleAt).toLocaleString()} | Files: ${job.files.length} | Status: ${job.status} ${job.repeat && job.repeat !== 'none' ? '| Repeat: ' + job.repeat : ''}</small>
         </div>
         <div class="actions">
           <button data-action="run">Run Now</button>
@@ -144,6 +174,7 @@
       queueList.appendChild(li);
     });
     await renderCalendar();
+    await renderAnalytics();
   }
 
   // Accounts
@@ -194,24 +225,238 @@
     }
   });
 
+  async function refreshTemplates() {
+    const templates = await api.templates.list();
+    templateSelect.innerHTML = '<option value="">None</option>';
+    tplList.innerHTML = '';
+    templates.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = String(t.id);
+      opt.textContent = t.name;
+      templateSelect.appendChild(opt);
+
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div>
+          <div><strong>${t.name}</strong></div>
+          <small class="muted">${t.content.slice(0, 80)}${t.content.length > 80 ? '...' : ''}</small>
+        </div>
+        <div class="actions">
+          <button data-action="use">Use</button>
+          <button data-action="remove">Remove</button>
+        </div>
+      `;
+      li.querySelector('[data-action="use"]').addEventListener('click', () => {
+        captionInput.value = t.content;
+        log(`Applied template ${t.name}`);
+      });
+      li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
+        await api.templates.remove(t.id);
+        log(`Removed template ${t.name}`);
+        await refreshTemplates();
+      });
+      tplList.appendChild(li);
+    });
+  }
+
+  async function refreshHashtagSets() {
+    const sets = await api.hashtags.list();
+    hashtagSetSelect.innerHTML = '<option value="">None</option>';
+    hsList.innerHTML = '';
+    sets.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = String(s.id);
+      opt.textContent = s.name;
+      hashtagSetSelect.appendChild(opt);
+
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div>
+          <div><strong>${s.name}</strong></div>
+          <small class="muted">${(s.tags || []).join(' ')}</small>
+        </div>
+        <div class="actions">
+          <button data-action="apply">Apply</button>
+          <button data-action="remove">Remove</button>
+        </div>
+      `;
+      li.querySelector('[data-action="apply"]').addEventListener('click', () => {
+        hashtagsInput.value = (hashtagsInput.value + ' ' + (s.tags || []).join(' ')).trim();
+        log(`Applied hashtag set ${s.name}`);
+      });
+      li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
+        await api.hashtags.remove(s.id);
+        log(`Removed hashtag set ${s.name}`);
+        await refreshHashtagSets();
+      });
+      hsList.appendChild(li);
+    });
+  }
+
+  async function refreshLibrary() {
+    const items = await api.library.list();
+    libraryList.innerHTML = '';
+    items.forEach(it => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div>
+          <div><strong>${it.name}</strong> <span class="muted">(${it.type})</span></div>
+          <small class="muted">${it.path}</small>
+        </div>
+        <div class="actions">
+          <button data-action="use">Use</button>
+          <button data-action="remove">Remove</button>
+        </div>
+      `;
+      li.querySelector('[data-action="use"]').addEventListener('click', () => {
+        selectedFiles.push(it.path);
+        renderSelectedFiles();
+        log(`Added ${it.name} to selected files`);
+      });
+      li.querySelector('[data-action="remove"]').addEventListener('click', async () => {
+        await api.library.remove(it.id);
+        await refreshLibrary();
+        log(`Removed ${it.name} from library`);
+      });
+      libraryList.appendChild(li);
+    });
+  }
+
+  // Add template
+  tplAddBtn.addEventListener('click', async () => {
+    const name = tplName.value.trim();
+    const content = tplContent.value.trim();
+    if (!name || !content) {
+      log('Template name and content required.');
+      return;
+    }
+    await api.templates.add({ name, content });
+    tplName.value = '';
+    tplContent.value = '';
+    await refreshTemplates();
+    log(`Added template ${name}`);
+  });
+
+  // Add hashtag set
+  hsAddBtn.addEventListener('click', async () => {
+    const name = hsName.value.trim();
+    const tags = hsTags.value.trim().split(/\s+/).filter(Boolean);
+    if (!name) {
+      log('Hashtag set name required.');
+      return;
+    }
+    await api.hashtags.add({ name, tags });
+    hsName.value = '';
+    hsTags.value = '';
+    await refreshHashtagSets();
+    log(`Added hashtag set ${name}`);
+  });
+
+  // Library
+  libraryDropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    libraryDropzone.style.borderColor = '#667eea';
+  });
+  libraryDropzone.addEventListener('dragleave', () => {
+    libraryDropzone.style.borderColor = '';
+  });
+  libraryDropzone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    libraryDropzone.style.borderColor = '';
+    const files = Array.from(e.dataTransfer.files).map(f => ({ path: f.path, name: f.name }));
+    await api.library.add(files);
+    await refreshLibrary();
+    log(`Added ${files.length} item(s) to library`);
+  });
+
+  libraryBrowseBtn.addEventListener('click', async () => {
+    const result = await api.dialog.openFiles({
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Media', extensions: ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'mov'] }
+      ]
+    });
+    if (!result.canceled) {
+      const files = result.filePaths.map(p => ({ path: p, name: p.split(/[\\/]/).pop() }));
+      await api.library.add(files);
+      await refreshLibrary();
+      log(`Added ${files.length} item(s) to library`);
+    }
+  });
+
+  // Template select apply
+  templateSelect.addEventListener('change', async () => {
+    const id = Number(templateSelect.value || 0);
+    if (!id) return;
+    const templates = await api.templates.list();
+    const t = templates.find(tt => tt.id === id);
+    if (t) {
+      captionInput.value = t.content;
+      log(`Applied template ${t.name}`);
+    }
+  });
+
+  function combinedHashtags() {
+    const extras = hashtagsInput.value.trim().split(/\s+/).filter(Boolean);
+    const selectedId = Number(hashtagSetSelect.value || 0);
+    return (async () => {
+      if (!selectedId) return extras;
+      const sets = await api.hashtags.list();
+      const set = sets.find(s => s.id === selectedId);
+      const base = set ? (set.tags || []) : [];
+      return Array.from(new Set(base.concat(extras)));
+    })();
+  }
+
   queueNowBtn.addEventListener('click', async () => {
     const accountId = Number(postAccount.value || 0);
     const platform = postPlatform.value;
     const caption = captionInput.value.trim();
-    const hashtags = hashtagsInput.value.trim().split(/\s+/).filter(Boolean);
+    const hashtags = await combinedHashtags();
     if (!accountId || !selectedFiles.length) {
       log('Please select an account and at least one media file.');
       return;
     }
     lastQueuedDraft = { accountId, platform, caption, hashtags, files: selectedFiles.slice() };
-    await api.posting.queue({ ...lastQueuedDraft, scheduleAt: Date.now() });
+    await api.posting.queue({ ...lastQueuedDraft, scheduleAt: Date.now(), repeat: 'none' });
     selectedFiles = [];
     renderSelectedFiles();
     captionInput.value = '';
     hashtagsInput.value = '';
+    templateSelect.value = '';
+    hashtagSetSelect.value = '';
     await refreshQueue();
     await refreshOverview();
     log(`Queued post for ${platform}`);
+  });
+
+  // Direct YouTube Upload via API
+  youtubeUploadBtn.addEventListener('click', async () => {
+    const accountId = Number(postAccount.value || 0);
+    const platform = postPlatform.value;
+    if (platform !== 'youtube') {
+      log('Direct upload is available for YouTube only.');
+      return;
+    }
+    if (!accountId || !selectedFiles.length) {
+      log('Select a YouTube account and a video file.');
+      return;
+    }
+    try {
+      const tags = await combinedHashtags();
+      const res = await api.youtube.upload({
+        accountId,
+        filePath: selectedFiles[0],
+        title: captionInput.value.trim() || 'Untitled',
+        description: captionInput.value.trim() || '',
+        tags,
+        privacyStatus: 'private',
+        scheduleAt: null
+      });
+      log(res.success ? `YouTube upload started (videoId: ${res.videoId || 'unknown'})` : `Upload failed: ${res.error}`);
+    } catch (e) {
+      log('Upload failed: ' + e.message);
+    }
   });
 
   // Scheduler
@@ -226,7 +471,8 @@
       return;
     }
     const scheduleAt = new Date(dtStr).getTime();
-    await api.posting.queue({ ...lastQueuedDraft, scheduleAt });
+    const repeat = repeatSelect.value || 'none';
+    await api.posting.queue({ ...lastQueuedDraft, scheduleAt, repeat });
     await refreshQueue();
     await refreshOverview();
     await renderCalendar();
@@ -241,11 +487,14 @@
   exportDataBtn.addEventListener('click', async () => {
     const data = {
       accounts: await api.accounts.list(),
-      queue: await api.posting.list()
+      queue: await api.posting.list(),
+      library: await api.library.list(),
+      templates: await api.templates.list(),
+      hashtagSets: await api.hashtags.list(),
+      settings: await api.settings.get()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    // In Electron renderer, we can open the URL to download
     const a = document.createElement('a');
     a.href = url;
     a.download = `reaksaio-export-${Date.now()}.json`;
@@ -265,12 +514,44 @@
       const data = JSON.parse(text);
       await api.store.set('accounts', data.accounts || []);
       await api.store.set('queue', data.queue || []);
+      await api.store.set('library', data.library || []);
+      await api.store.set('templates', data.templates || []);
+      await api.store.set('hashtagSets', data.hashtagSets || []);
+      if (data.settings) await api.settings.set(data.settings);
       log('Imported data');
       await refreshAccounts();
       await refreshQueue();
+      await refreshLibrary();
+      await refreshTemplates();
+      await refreshHashtagSets();
       await refreshOverview();
     } catch (e) {
       log('Import failed: ' + e.message);
+    }
+  });
+
+  ytSaveBtn.addEventListener('click', async () => {
+    const cid = ytClientId.value.trim();
+    const sec = ytClientSecret.value.trim();
+    if (!cid || !sec) {
+      log('Enter YouTube OAuth Client ID and Secret.');
+      return;
+    }
+    await api.youtube.configure(cid, sec);
+    log('Saved YouTube API credentials.');
+  });
+
+  ytAuthBtn.addEventListener('click', async () => {
+    const accountId = Number(postAccount.value || 0);
+    if (!accountId) {
+      log('Select a YouTube account (Accounts tab or Uploads -> Account).');
+      return;
+    }
+    try {
+      await api.youtube.auth(accountId);
+      log('Opened YouTube authentication in browser. Complete the flow then return here.');
+    } catch (e) {
+      log('Auth failed: ' + e.message);
     }
   });
 
@@ -290,8 +571,6 @@
     const monthEnd = endOfMonth(calendarDate);
     calendarMonthLabel.textContent = monthStart.toLocaleString(undefined, { month: 'long', year: 'numeric' });
 
-    // Build cells
-    const cells = [];
     const beforeDays = weekdayIndex(monthStart);
     const totalDays = monthEnd.getDate();
     const afterDays = (7 - ((beforeDays + totalDays) % 7)) % 7;
@@ -354,6 +633,25 @@
     }
   }
 
+  async function renderAnalytics() {
+    const queue = await api.posting.list();
+    const totals = {};
+    const statuses = { posted: 0, failed: 0, queued: 0 };
+    queue.forEach(q => {
+      totals[q.platform] = (totals[q.platform] || 0) + 1;
+      statuses[q.status] = (statuses[q.status] || 0) + 1;
+    });
+    const parts = [
+      `Total queued: ${queue.length}`,
+      `Posted: ${statuses.posted || 0}`,
+      `Failed: ${statuses.failed || 0}`
+    ];
+    for (const [plat, n] of Object.entries(totals)) {
+      parts.push(`${plat}: ${n}`);
+    }
+    analyticsSummary.textContent = parts.join(' • ');
+  }
+
   prevMonthBtn.addEventListener('click', async () => {
     calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1);
     await renderCalendar();
@@ -365,9 +663,16 @@
 
   // Init
   (async function init() {
+    const settings = await api.settings.get();
+    ytClientId.value = settings.youtubeClientId || '';
+    ytClientSecret.value = settings.youtubeClientSecret || '';
+
     await refreshAccounts();
     await refreshQueue();
     await refreshOverview();
+    await refreshLibrary();
+    await refreshTemplates();
+    await refreshHashtagSets();
     await renderCalendar();
   })();
 })();
