@@ -23,6 +23,7 @@
       "preload.js",
       "automation/**/*",
       "storage/**/*",
+      "integrations/**/*",
       "app/**/*",
       "node_modules/**/*",
       "package.json"
@@ -41,7 +42,8 @@
   "dependencies": {
     "electron-updater": "^6.2.1",
     "keytar": "^7.12.0",
-    "selenium-webdriver": "^4.24.0"
+    "selenium-webdriver": "^4.24.0",
+    "googleapis": "^164.1.0"
   },
   "devDependencies": {
     "electron": "^31.3.0",

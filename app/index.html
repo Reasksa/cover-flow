@@ -18,6 +18,10 @@
       <button class="tab" data-target="accounts">Accounts</button>
       <button class="tab" data-target="uploads">Uploads</button>
       <button class="tab" data-target="scheduler">Scheduler</button>
+      <button class="tab" data-target="library">Library</button>
+      <button class="tab" data-target="templates">Templates</button>
+      <button class="tab" data-target="hashtags">Hashtags</button>
+      <button class="tab" data-target="analytics">Analytics</button>
       <button class="tab" data-target="settings">Settings</button>
     </nav>
 
@@ -86,11 +90,19 @@
             </select>
           </div>
           <div class="form-row">
+            <label>Template</label>
+            <select id="templateSelect"><option value="">None</option></select>
+          </div>
+          <div class="form-row">
             <label>Caption</label>
             <textarea id="caption" rows="3" placeholder="Write caption..."></textarea>
           </div>
           <div class="form-row">
-            <label>Hashtags</label>
+            <label>Hashtag Set</label>
+            <select id="hashtagSetSelect"><option value="">None</option></select>
+          </div>
+          <div class="form-row">
+            <label>Extra Hashtags</label>
             <input id="hashtags" placeholder="#tag1 #tag2" />
           </div>
           <div class="form-row">
@@ -100,6 +112,7 @@
           </div>
           <div class="actions">
             <button id="queueNowBtn">Queue Now</button>
+            <button id="youtubeUploadBtn">Direct YouTube Upload</button>
           </div>
         </div>
       </section>
@@ -124,9 +137,72 @@
             <label>Date/Time</label>
             <input id="scheduleAt" type="datetime-local" />
           </div>
+          <div class="form-row">
+            <label>Repeat</label>
+            <select id="repeatSelect">
+              <option value="none">None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
           <div class="actions">
             <button id="scheduleBtn">Add to Schedule</button>
           </div>
+        </div>
+      </section>
+
+      <section id="library" class="view">
+        <div class="card">
+          <h3>Content Library</h3>
+          <div class="form-row">
+            <label>Add Media</label>
+            <div id="libraryDropzone" class="dropzone">Drag & drop files here or <button id="libraryBrowseBtn" type="button">Browse</button></div>
+          </div>
+          <ul id="libraryList" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="templates" class="view">
+        <div class="card">
+          <h3>Caption Templates</h3>
+          <div class="form-row">
+            <label>Name</label>
+            <input id="tplName" placeholder="Template name" />
+          </div>
+          <div class="form-row">
+            <label>Content</label>
+            <textarea id="tplContent" rows="3" placeholder="Template text with placeholders..."></textarea>
+          </div>
+          <div class="actions">
+            <button id="tplAddBtn">Add Template</button>
+          </div>
+          <ul id="tplList" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="hashtags" class="view">
+        <div class="card">
+          <h3>Hashtag Sets</h3>
+          <div class="form-row">
+            <label>Name</label>
+            <input id="hsName" placeholder="Set name" />
+          </div>
+          <div class="form-row">
+            <label>Tags</label>
+            <input id="hsTags" placeholder="#tag1 #tag2 #tag3" />
+          </div>
+          <div class="actions">
+            <button id="hsAddBtn">Add Set</button>
+          </div>
+          <ul id="hsList" class="list"></ul>
+        </div>
+      </section>
+
+      <section id="analytics" class="view">
+        <div class="card">
+          <h3>Analytics</h3>
+          <div id="analyticsSummary"></div>
         </div>
       </section>
 
@@ -140,6 +216,22 @@
             <input id="importDataInput" type="file" style="display:none" />
             <button id="importDataBtn">Import Data</button>
           </div>
+        </div>
+        <div class="card">
+          <h3>YouTube API</h3>
+          <div class="form-row">
+            <label>Client ID</label>
+            <input id="ytClientId" placeholder="Google OAuth Client ID" />
+          </div>
+          <div class="form-row">
+            <label>Client Secret</label>
+            <input id="ytClientSecret" placeholder="Google OAuth Client Secret" />
+          </div>
+          <div class="actions">
+            <button id="ytSaveBtn">Save</button>
+            <button id="ytAuthBtn">Authenticate Selected YouTube Account</button>
+          </div>
+          <p class="hint">Set up OAuth 2.0 in Google Cloud Console with redirect URI http://localhost:8888/oauth2callback</p>
         </div>
       </section>
     </main>
